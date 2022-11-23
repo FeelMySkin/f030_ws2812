@@ -2,13 +2,108 @@
   "name": "ws2812",
   "type": "ARM",
   "dependenceList": [],
-  "srcDirs": [
-    ".eide/deps"
-  ],
+  "srcDirs": [],
   "virtualFolder": {
     "name": "<virtual_root>",
     "files": [],
-    "folders": []
+    "folders": [
+      {
+        "name": "Hardware Controllers",
+        "files": [
+          {
+            "path": "Stm32Libs/F0/Hardware Controllers/adc_controller.cpp"
+          },
+          {
+            "path": "Stm32Libs/F0/Hardware Controllers/adc_controller.h"
+          },
+          {
+            "path": "Stm32Libs/F0/Hardware Controllers/ws2812_controller.cpp"
+          }
+        ],
+        "folders": []
+      },
+      {
+        "name": "Help Functions",
+        "files": [
+          {
+            "path": "Stm32Libs/F0/Help Functions/periph_functions.cpp"
+          }
+        ],
+        "folders": []
+      },
+      {
+        "name": "LL",
+        "files": [
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_adc.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_comp.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_crc.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_crs.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_dac.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_dma.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_exti.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_gpio.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_i2c.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_pwr.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_rcc.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_rtc.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_spi.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_tim.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_usart.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_usb.c"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_utils.c"
+          }
+        ],
+        "folders": []
+      },
+      {
+        "name": "Sources",
+        "files": [
+          {
+            "path": "Source.cpp"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/CMSIS/Device/ST/STM32F0xx/Source/Templates/arm/startup_stm32f030x6.s"
+          },
+          {
+            "path": "STM32CubeF0/Drivers/CMSIS/Device/ST/STM32F0xx/Source/Templates/system_stm32f0xx.c"
+          }
+        ],
+        "folders": []
+      }
+    ]
   },
   "outDir": "build",
   "deviceName": null,
@@ -18,7 +113,9 @@
   },
   "targets": {
     "Debug": {
-      "excludeList": [],
+      "excludeList": [
+        "<virtual_root>/LL/stm32f0xx_ll_usb.c"
+      ],
       "toolchain": "AC5",
       "compileConfig": {
         "cpuType": "Cortex-M3",
@@ -69,11 +166,25 @@
       "custom_dep": {
         "name": "default",
         "incList": [
-          ".eide/deps"
+          ".eide/deps",
+          "Stm32Libs/F0/Hardware Controllers",
+          "STM32CubeF0/Drivers/CMSIS/Core/Include",
+          "STM32CubeF0/Drivers/CMSIS/Device/ST/STM32F0xx/Include",
+          "STM32CubeF0/Drivers/CMSIS/Device/ST/STM32F0xx/Source/Templates",
+          "STM32CubeF0/Drivers/CMSIS/Device/ST/STM32F0xx/Source/Templates/arm",
+          "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Inc",
+          "STM32CubeF0/Drivers/STM32F0xx_HAL_Driver/Src",
+          ".",
+          "Stm32Libs/F0/Help Functions"
         ],
-        "libList": [],
+        "libList": [
+          "STM32CubeF0/Drivers"
+        ],
         "sourceDirList": [],
-        "defineList": []
+        "defineList": [
+          "STM32F030x6",
+          "USE_FULL_LL_DRIVER"
+        ]
       }
     }
   },
