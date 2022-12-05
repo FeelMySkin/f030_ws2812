@@ -14,4 +14,6 @@ void InitGPIO();
 void InitWS();
 void InitTIM();
 
+void Colorize();
+
 #endif

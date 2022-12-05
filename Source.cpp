@@ -1,59 +1,177 @@
 #include "Source.h"
+#include <stdlib.h>
+
+struct Flags{
+	bool but1_pressed:1;
+	bool but2_pressed:1;
+	bool but3_pressed:1;
+    bool but1_req:1;
+    bool but2_req:1;
+    bool but3_req:1;
+}flags;
+
+Color Blue = Color(0,0,255);
+Color Red = Color(255,0,0);
+Color Yellow = Color(255,255,0);
+
+enum ColorStateMachine
+{
+    DefaultBlue,
+    DefaultYellow,
+    DefaultRed
+}color_state;
 
 extern "C"
 {
     void EXTI0_1_IRQHandler()
     {
-        LL_EXTI_ClearFlag_0_31(BUT1_PIN);
-        LL_EXTI_DisableIT_0_31(BUT1_PIN);
-        LL_TIM_EnableCounter(BUT_TIM);
+        //LL_EXTI_ClearFlag_0_31(BUT1_PIN);
+        if(LL_EXTI_IsActiveFlag_0_31(BUT1_PIN))
+        {
+            LL_EXTI_DisableIT_0_31(BUT1_PIN);
+            LL_TIM_SetCounter(BUT_TIM,0);
+            LL_TIM_EnableCounter(BUT_TIM);
+        }
+        if(LL_EXTI_IsActiveFlag_0_31(BUT2_PIN))
+        {
+            LL_EXTI_DisableIT_0_31(BUT2_PIN);
+            LL_TIM_SetCounter(BUT_TIM,0);
+            LL_TIM_EnableCounter(BUT_TIM);
+        }
+    }
+
+    void EXTI2_3_IRQHandler()
+    {
+        if(LL_EXTI_IsActiveFlag_0_31(BUT3_PIN))
+        {
+            LL_EXTI_DisableIT_0_31(BUT3_PIN);
+            LL_TIM_SetCounter(BUT_TIM,0);
+            LL_TIM_EnableCounter(BUT_TIM);
+        }
     }
 
     void TIM14_IRQHandler()
     {
-        LL_EXTI_ClearFlag_0_31(BUT1_PIN);
-        LL_EXTI_EnableIT_0_31(BUT1_PIN);
+        if(LL_EXTI_IsActiveFlag_0_31(BUT1_PIN))
+        {
+            LL_EXTI_ClearFlag_0_31(BUT1_PIN);
+            if(LL_GPIO_ReadInputPort(BUT1_GPIO) & BUT1_PIN) flags.but1_pressed = false;
+            else flags.but1_pressed = true;
+            flags.but1_req = true;
+            LL_EXTI_EnableIT_0_31(BUT1_PIN);
+        }
+
+        if(LL_EXTI_IsActiveFlag_0_31(BUT2_PIN))
+        {
+            LL_EXTI_ClearFlag_0_31(BUT2_PIN);
+            if(LL_GPIO_ReadInputPort(BUT2_GPIO) & BUT2_PIN) flags.but2_pressed = false;
+            else flags.but2_pressed = true;
+            flags.but2_req = true;
+            LL_EXTI_EnableIT_0_31(BUT2_PIN);
+        }
+
+        if(LL_EXTI_IsActiveFlag_0_31(BUT3_PIN))
+        {
+            LL_EXTI_ClearFlag_0_31(BUT3_PIN);
+            if(LL_GPIO_ReadInputPort(BUT3_GPIO) & BUT3_PIN) flags.but3_pressed = false;
+            else flags.but3_pressed = true;
+            flags.but2_req = true;
+            LL_EXTI_EnableIT_0_31(BUT3_PIN);
+        }
     }
 }
 
+bool tst = false;
+bool strt = false;
+
 int main()
 {
-    
+	//while(!strt) asm("NOP");
     InitPeriph();
     InitRCC();
     InitGPIO();
     InitWS();
     InitTIM();
+	while(ws.IsWriting()) asm("NOP");
+	srand(LL_TIM_GetCounter(WS_TIM));
+    color_state = DefaultBlue;
+	for(int i =0;i<100000;++i) asm("NOP");
+	ws.SetPixelColor(0,Blue);
+	ws.Colorize();
+	tst = false;
+    
     
 
     while(1)
     {
-        __WFI();
+        if(flags.but1_req)
+        {
+
+            if(flags.but1_pressed) color_state - DefaultBlue;
+            flags.but1_req = false;
+        }
+		
+         if(flags.but2_req)
+        {
+
+            if(flags.but2_pressed) color_state - DefaultYellow;
+            flags.but2_req = false;
+        }
+
+         if(flags.but3_req)
+        {
+
+            if(flags.but3_pressed) color_state - DefaultRed;
+            flags.but3_req = false;
+        }
+        Colorize();
     }
+}
+
+void Colorize()
+{
+    switch(color_state)
+    {
+        case DefaultBlue:
+            ws.SetPixelColor(0,Blue);
+        break;
+
+        case DefaultRed:
+            ws.SetPixelColor(0,Red);
+        break;
+
+        case DefaultYellow:
+            ws.SetPixelColor(0,Yellow);
+        break;
+
+    }
+    ws.Colorize();
 }
 
 
 
 void InitRCC()
 {
+   LL_FLASH_SetLatency(LL_FLASH_LATENCY_1);
     LL_RCC_HSI_Enable();
-    while(!LL_RCC_IsActiveFlag_HSIRDY()) asm("NOP");
+    while(!LL_RCC_HSI_IsReady()) asm("NOP");
     LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_HSI);
     while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSI) asm("NOP");
 
     LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI_DIV_2,LL_RCC_PLL_MUL_12);
     LL_RCC_PLL_Enable();
-    while(!LL_RCC_PLL_IsReady()) asm("NOP");
-
-    //LL_RCC_SetSysClkSource()
+	while(!LL_RCC_PLL_IsReady()) asm("NOP");
+    LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
+    while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL) asm("NOP");
     SystemCoreClockUpdate();
     
 }
 
 void InitPeriph()
 {
-    LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3 | LL_APB1_GRP1_PERIPH_TIM14);
-    LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA | LL_AHB1_GRP1_PERIPH_GPIOB | LL_AHB1_GRP1_PERIPH_DMA1);
+	LL_APB1_GRP2_EnableClock(LL_APB1_GRP2_PERIPH_TIM1);
+    LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3 | LL_APB1_GRP1_PERIPH_TIM14 | LL_APB1_GRP1_PERIPH_PWR);
+    LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA | LL_AHB1_GRP1_PERIPH_GPIOB | LL_AHB1_GRP1_PERIPH_DMA1 | LL_AHB1_GRP1_PERIPH_FLASH);
 }
 
 void InitGPIO()
@@ -61,20 +179,36 @@ void InitGPIO()
     LL_GPIO_InitTypeDef gpio;
     gpio.Mode = LL_GPIO_MODE_INPUT;
     gpio.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    gpio.Pin = BUT1_PIN;
     gpio.Pull = LL_GPIO_PULL_UP;
     gpio.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+    
+    gpio.Pin = BUT1_PIN;
     LL_GPIO_Init(BUT1_GPIO,&gpio);
+    gpio.Pin = BUT2_PIN;
+    LL_GPIO_Init(BUT2_GPIO,&gpio);
+    gpio.Pin = BUT3_PIN;
+    LL_GPIO_Init(BUT3_GPIO,&gpio);
+
 
     LL_EXTI_InitTypeDef exti;
-    exti.Line_0_31 = GetExtiLine(BUT1_PIN);
     exti.LineCommand = ENABLE;
     exti.Mode = LL_EXTI_MODE_IT;
     exti.Trigger = LL_EXTI_TRIGGER_RISING_FALLING;
+    
+    exti.Line_0_31 = GetExtiLine(BUT1_PIN);
     LL_EXTI_Init(&exti);
     SetExtiSource(BUT1_GPIO,BUT1_PIN);
-
     EnableExtiIRQn(BUT1_PIN,1);
+    
+    exti.Line_0_31 = GetExtiLine(BUT2_PIN);
+    LL_EXTI_Init(&exti);
+    SetExtiSource(BUT2_GPIO,BUT2_PIN);
+    EnableExtiIRQn(BUT2_PIN,1);
+    
+    exti.Line_0_31 = GetExtiLine(BUT3_PIN);
+    LL_EXTI_Init(&exti);
+    SetExtiSource(BUT3_GPIO,BUT3_PIN);
+    EnableExtiIRQn(BUT3_PIN,1);
 }
 
 void InitWS()
