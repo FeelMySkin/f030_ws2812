@@ -10,9 +10,9 @@ struct Flags{
     bool but3_req:1;
 }flags;
 
-Color Blue = Color(0,0,15);
-Color Red = Color(15,0,0);
-Color Yellow = Color(15,15,0);
+Color Blue = Color(0,0,255);
+Color Red = Color(255,0,0);
+Color Yellow = Color(255,255,0);
 Color ultra_tst;
 
 enum ColorStateMachine
@@ -173,15 +173,15 @@ void Colorize()
         break;
 		
 		case BlinkBlue:
-			ws.SetPixelColor(0, Color(0,0,LL_TIM_GetCounter(BLINK_TIM)/50));
+			ws.SetPixelColor(0, Color(0,0,LL_TIM_GetCounter(BLINK_TIM)/4));
 		break;
 		
 		case BlinkRed:
-			ws.SetPixelColor(0, Color(LL_TIM_GetCounter(BLINK_TIM)/50,0,0));
+			ws.SetPixelColor(0, Color(LL_TIM_GetCounter(BLINK_TIM)/4,0,0));
 		break;
 		
 		case BlinkYellow:
-			ws.SetPixelColor(0, Color(LL_TIM_GetCounter(BLINK_TIM)/50,LL_TIM_GetCounter(BLINK_TIM)/50,0));
+			ws.SetPixelColor(0, Color(LL_TIM_GetCounter(BLINK_TIM)/4,LL_TIM_GetCounter(BLINK_TIM)/4,0));
 		break;
 			
 
@@ -263,7 +263,7 @@ void InitWS()
     wss.ws_pin = WS_PIN;
     wss.ws_tim = WS_TIM;
     wss.ws_tim_ch = WS_TIM_CH;
-	wss.bit_width = WS_4_BIT;
+	wss.bit_width = WS_8_BIT;
 	wss.col_pos = WS_GRB;
     ws.Init(wss);
     ws.SetPixelColor(0,Color(0,0,255));
@@ -288,7 +288,7 @@ void InitTIM()
 	
 	
 	/* Animation TIM */
-	tim.Autoreload = 750;
+	tim.Autoreload = 1020;
 	tim.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
 	tim.CounterMode = LL_TIM_COUNTERMODE_CENTER_UP_DOWN;
 	tim.Prescaler = SystemCoreClock/1000;
