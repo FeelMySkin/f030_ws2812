@@ -21,5 +21,7 @@
 #define WS_DMA      DMA1
 #define WS_DMA_CH   LL_DMA_CHANNEL_5
 
+#define BLINK_TIM	TIM3
+
 
 #endif

@@ -10,31 +10,37 @@ struct Flags{
     bool but3_req:1;
 }flags;
 
-Color Blue = Color(0,0,255);
-Color Red = Color(255,0,0);
-Color Yellow = Color(255,255,0);
+Color Blue = Color(0,0,15);
+Color Red = Color(15,0,0);
+Color Yellow = Color(15,15,0);
+Color ultra_tst;
 
 enum ColorStateMachine
 {
     DefaultBlue,
     DefaultYellow,
-    DefaultRed
+    DefaultRed,
+	BlinkBlue,
+	BlinkYellow,
+	BlinkRed
 }color_state;
 
 extern "C"
 {
     void EXTI0_1_IRQHandler()
     {
-        //LL_EXTI_ClearFlag_0_31(BUT1_PIN);
         if(LL_EXTI_IsActiveFlag_0_31(BUT1_PIN))
         {
-            LL_EXTI_DisableIT_0_31(BUT1_PIN);
+            DisableExtiIRQn(BUT1_PIN);
+            //LL_EXTI_DisableIT_0_31(BUT1_PIN);
+			//LL_EXTI_ClearFlag_0_31(BUT1_PIN);
             LL_TIM_SetCounter(BUT_TIM,0);
             LL_TIM_EnableCounter(BUT_TIM);
         }
         if(LL_EXTI_IsActiveFlag_0_31(BUT2_PIN))
         {
-            LL_EXTI_DisableIT_0_31(BUT2_PIN);
+            DisableExtiIRQn(BUT2_PIN);
+            //LL_EXTI_DisableIT_0_31(BUT2_PIN);
             LL_TIM_SetCounter(BUT_TIM,0);
             LL_TIM_EnableCounter(BUT_TIM);
         }
@@ -44,7 +50,8 @@ extern "C"
     {
         if(LL_EXTI_IsActiveFlag_0_31(BUT3_PIN))
         {
-            LL_EXTI_DisableIT_0_31(BUT3_PIN);
+            DisableExtiIRQn(BUT3_PIN);
+            //LL_EXTI_DisableIT_0_31(BUT3_PIN);
             LL_TIM_SetCounter(BUT_TIM,0);
             LL_TIM_EnableCounter(BUT_TIM);
         }
@@ -52,13 +59,14 @@ extern "C"
 
     void TIM14_IRQHandler()
     {
+		LL_TIM_ClearFlag_UPDATE(BUT_TIM);
         if(LL_EXTI_IsActiveFlag_0_31(BUT1_PIN))
         {
             LL_EXTI_ClearFlag_0_31(BUT1_PIN);
             if(LL_GPIO_ReadInputPort(BUT1_GPIO) & BUT1_PIN) flags.but1_pressed = false;
             else flags.but1_pressed = true;
             flags.but1_req = true;
-            LL_EXTI_EnableIT_0_31(BUT1_PIN);
+            EnableExtiIRQn(BUT1_PIN,0);
         }
 
         if(LL_EXTI_IsActiveFlag_0_31(BUT2_PIN))
@@ -67,7 +75,7 @@ extern "C"
             if(LL_GPIO_ReadInputPort(BUT2_GPIO) & BUT2_PIN) flags.but2_pressed = false;
             else flags.but2_pressed = true;
             flags.but2_req = true;
-            LL_EXTI_EnableIT_0_31(BUT2_PIN);
+            EnableExtiIRQn(BUT2_PIN,0);
         }
 
         if(LL_EXTI_IsActiveFlag_0_31(BUT3_PIN))
@@ -75,18 +83,20 @@ extern "C"
             LL_EXTI_ClearFlag_0_31(BUT3_PIN);
             if(LL_GPIO_ReadInputPort(BUT3_GPIO) & BUT3_PIN) flags.but3_pressed = false;
             else flags.but3_pressed = true;
-            flags.but2_req = true;
-            LL_EXTI_EnableIT_0_31(BUT3_PIN);
+            flags.but3_req = true;
+            EnableExtiIRQn(BUT3_PIN,0);
         }
     }
 }
 
 bool tst = false;
 bool strt = false;
+uint8_t anim_state = 0;
 
 int main()
 {
 	//while(!strt) asm("NOP");
+	
     InitPeriph();
     InitRCC();
     InitGPIO();
@@ -107,23 +117,41 @@ int main()
         if(flags.but1_req)
         {
 
-            if(flags.but1_pressed) color_state - DefaultBlue;
+            if(flags.but1_pressed)
+			{
+				if(color_state == DefaultBlue) color_state = BlinkBlue;
+				else color_state = DefaultBlue;
+			}
             flags.but1_req = false;
         }
 		
          if(flags.but2_req)
         {
 
-            if(flags.but2_pressed) color_state - DefaultYellow;
+            if(flags.but2_pressed)
+			{
+				if(color_state == DefaultYellow) color_state = BlinkYellow;
+				else color_state = DefaultYellow;
+			}
             flags.but2_req = false;
         }
 
          if(flags.but3_req)
         {
 
-            if(flags.but3_pressed) color_state - DefaultRed;
+            if(flags.but3_pressed)
+			{
+				if(color_state == DefaultRed) color_state = BlinkRed;
+				else color_state = DefaultRed;
+			}
             flags.but3_req = false;
         }
+		if(tst)
+		{
+			tst = false;
+			ws.SetPixelColor(0,ultra_tst);
+			ws.Colorize();
+		}
         Colorize();
     }
 }
@@ -143,6 +171,19 @@ void Colorize()
         case DefaultYellow:
             ws.SetPixelColor(0,Yellow);
         break;
+		
+		case BlinkBlue:
+			ws.SetPixelColor(0, Color(0,0,LL_TIM_GetCounter(BLINK_TIM)/50));
+		break;
+		
+		case BlinkRed:
+			ws.SetPixelColor(0, Color(LL_TIM_GetCounter(BLINK_TIM)/50,0,0));
+		break;
+		
+		case BlinkYellow:
+			ws.SetPixelColor(0, Color(LL_TIM_GetCounter(BLINK_TIM)/50,LL_TIM_GetCounter(BLINK_TIM)/50,0));
+		break;
+			
 
     }
     ws.Colorize();
@@ -158,11 +199,11 @@ void InitRCC()
     LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_HSI);
     while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSI) asm("NOP");
 
-    LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI_DIV_2,LL_RCC_PLL_MUL_12);
-    LL_RCC_PLL_Enable();
-	while(!LL_RCC_PLL_IsReady()) asm("NOP");
-    LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
-    while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL) asm("NOP");
+    LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI_DIV_2,LL_RCC_PLL_MUL_10);
+   // LL_RCC_PLL_Enable();
+	//while(!LL_RCC_PLL_IsReady()) asm("NOP");
+    //LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
+    //while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL) asm("NOP");
     SystemCoreClockUpdate();
     
 }
@@ -222,6 +263,8 @@ void InitWS()
     wss.ws_pin = WS_PIN;
     wss.ws_tim = WS_TIM;
     wss.ws_tim_ch = WS_TIM_CH;
+	wss.bit_width = WS_4_BIT;
+	wss.col_pos = WS_GRB;
     ws.Init(wss);
     ws.SetPixelColor(0,Color(0,0,255));
     ws.Colorize();
@@ -229,6 +272,7 @@ void InitWS()
 
 void InitTIM()
 {
+	/* Debounce Timeout TIM*/
     LL_TIM_InitTypeDef tim;
     tim.Autoreload = 15;
     tim.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
@@ -237,6 +281,18 @@ void InitTIM()
     tim.RepetitionCounter = 0;
     LL_TIM_Init(BUT_TIM,&tim);
     LL_TIM_SetOnePulseMode(BUT_TIM,LL_TIM_ONEPULSEMODE_SINGLE);
+	
+	LL_TIM_EnableIT_UPDATE(BUT_TIM);
 
     EnableTimIRQn(BUT_TIM,0);
+	
+	
+	/* Animation TIM */
+	tim.Autoreload = 750;
+	tim.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
+	tim.CounterMode = LL_TIM_COUNTERMODE_CENTER_UP_DOWN;
+	tim.Prescaler = SystemCoreClock/1000;
+	tim.RepetitionCounter = 0;
+	LL_TIM_Init(BLINK_TIM,&tim);
+	LL_TIM_EnableCounter(BLINK_TIM);
 }
